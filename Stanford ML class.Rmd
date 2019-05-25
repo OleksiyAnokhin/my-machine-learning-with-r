@@ -1,0 +1,11 @@
+---
+title: "Stanford ML class"
+author: "Oleksiy Anokhin"
+date: "5/3/2019"
+output: html_document
+---
+
+```{r, ml1, message = FALSE, warning = FALSE}}
+
+```
+
