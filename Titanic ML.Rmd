@@ -1,0 +1,166 @@
+---
+title: "Prediction of Titanic Survivors, Using a Logistic Regression Model"
+author: "Oleksiy Anokhin"
+date: "5/20/2020"
+output: html_document
+---
+
+**Install packages**
+
+```{r, message = FALSE, warning = FALSE}
+library(tidyverse) # general analysis
+library(car) # for multicollinearity
+library(InformationValue) # fot cutoff check
+```
+
+**Read data**
+
+```{r, message = FALSE, warning = FALSE}
+train_data <- read_csv("train.csv")
+head(train_data)
+
+test_data <- read_csv("test.csv")
+head(test_data)
+
+survive_data <- read_csv("gender_submission.csv")
+head(survive_data)
+```
+
+**Join data**
+
+Why do we need to join train data with survive data? Because we do not have a boolean column in our test dataset. Hence, we will not be able to analyze properly.
+
+I will use the `inner_join()` here. 
+
+[Source:](https://dplyr.tidyverse.org/reference/join.html)
+
+```{r, message = FALSE, warning = FALSE}
+test_data_joined <- inner_join(test_data, survive_data)
+test_data_joined
+```
+
+Now we added one column with a survival value 1 or 0.
+
+**Logistic regression assumptions**
+
+The logistic regression method assumes that:
+
+* The outcome is a binary or dichotomous variable like yes vs no, positive vs negative, 1 vs 0.
+
+* There is a linear relationship between the logit of the outcome and each predictor variables. Recall that the logit function is logit(p) = log(p/(1-p)), where p is the probabilities of the outcome (see Chapter @ref(logistic-regression)).
+
+* There is no influential values (extreme values or outliers) in the continuous predictors
+
+* There is no high intercorrelations (i.e. multicollinearity) among the predictors.
+
+**Create a logit model, using the train dataset**
+
+```{r, message = FALSE, warning = FALSE}
+logit_model <- glm(Survived ~ Sex + Pclass, data = train_data, family = binomial(link = "logit"))
+summary(logit_model)
+```
+
+**Predict, using a logit model**
+
+```{r, message = FALSE, warning = FALSE}
+predicted <- predict(logit_model, test_data_joined, type = "response") 
+summary(predicted)
+```
+
+Now let's try to predict, using some specific values - sex and Pclass.
+
+```{r, message = FALSE, warning = FALSE}
+example1 <- data.frame(Sex = "female", Pclass = 3)
+example2 <- data.frame(Sex = "female", Pclass = 2)
+example3 <- data.frame(Sex = "female", Pclass = 1)
+predict(logit_model, example1, type = "response")
+predict(logit_model, example2, type = "response")
+predict(logit_model, example3, type = "response")
+```
+
+As we can see, the probaility to survive was pretty high even for women of the third class. 
+
+**Check for multicollinearity**
+
+The smallest possible value of VIF is one (absence of multicollinearity). As a rule of thumb, a VIF value that exceeds 5 or 10 indicates a problematic amount of collinearity (James et al. 2014).
+
+When faced to multicollinearity, the concerned variables should be removed, since the presence of multicollinearity implies that the information that this variable provides about the response is redundant in the presence of the other variables (James et al. 2014,P. Bruce and Bruce (2017)).
+[Source](http://www.sthda.com/english/articles/39-regression-model-diagnostics/160-multicollinearity-essentials-and-vif-in-r/) and 
+[source](http://r-statistics.co/Logistic-Regression-With-R.html).
+
+`vif()` helps to detect this issue in our model. 
+
+```{r, message = FALSE, warning = FALSE}
+vif(logit_model)
+```
+
+As we can see, all values are pretty low, looks like we are good here. 
+
+**Optimal prediction probability cutoff for the model**
+
+The default cutoff prediction probability score is 0.5 or the ratio of 1’s and 0’s in the training data. But sometimes, tuning the probability cutoff can improve the accuracy in both the development and validation samples. The `InformationValue::optimalCutoff` function provides ways to find the optimal cutoff to improve the prediction of 1’s, 0’s, both 1’s and 0’s and reduce the misclassification error. Lets compute the optimal score that minimizes the misclassification error for the above model.
+
+```{r, message = FALSE, warning = FALSE}
+optCutOff <- optimalCutoff(test_data_joined$Survived, predicted)[1]
+optCutOff
+```
+
+**Misclassification Error**
+
+Misclassification error is the percentage mismatch of predcited vs actuals, irrespective of 1’s or 0’s. The lower the misclassification error, the better is your model. [Source:](http://r-statistics.co/Logistic-Regression-With-R.html)
+
+In our case it will not work, we do not have 1 or 0 in train data. 
+
+```{r, message = FALSE, warning = FALSE}
+misClassError(test_data_joined$Survived, predicted, threshold = optCutOff)
+```
+
+We have 0, so it is a great result, nothing was misclassified. 
+
+**ROC**
+
+Receiver Operating Characteristics Curve traces the percentage of true positives accurately predicted by a given logit model as the prediction probability cutoff is lowered from 1 to 0. For a good model, as the cutoff is lowered, it should mark more of actual 1’s as positives and lesser of actual 0’s as 1’s. So for a good model, the curve should rise steeply, indicating that the TPR (Y-Axis) increases faster than the FPR (X-Axis) as the cutoff score decreases. Greater the area under the ROC curve, better the predictive ability of the model. [Source:](http://r-statistics.co/Logistic-Regression-With-R.html)
+
+```{r, message = FALSE, warning = FALSE}
+plotROC(test_data_joined$Survived, predicted)
+```
+
+Looks like our model predict perfectly. 
+
+**Concordance**
+
+Ideally, the model-calculated-probability-scores of all actual Positive’s, (aka Ones) should be greater than the model-calculated-probability-scores of ALL the Negatives (aka Zeroes). Such a model is said to be perfectly concordant and a highly reliable one. This phenomenon can be measured by Concordance and Discordance.
+
+In simpler words, of all combinations of 1-0 pairs (actuals), Concordance is the percentage of pairs, whose scores of actual positive’s are greater than the scores of actual negative’s. For a perfect model, this will be 100%. So, the higher the concordance, the better is the quality of model. [Source:](http://r-statistics.co/Logistic-Regression-With-R.html)
+
+```{r, message = FALSE, warning = FALSE}
+Concordance(test_data_joined$Survived, predicted)
+```
+
+**Specificity and Sensitivity**
+
+Sensitivity (or True Positive Rate) is the percentage of 1’s (actuals) correctly predicted by the model, while, specificity is the percentage of 0’s (actuals) correctly predicted. Specificity can also be calculated as 1 - False Positive Rate. [Source:](http://r-statistics.co/Logistic-Regression-With-R.html)
+
+```{r, message = FALSE, warning = FALSE}
+sensitivity(test_data_joined$Survived, predicted, threshold = optCutOff)
+specificity(test_data_joined$Survived, predicted, threshold = optCutOff)
+```
+
+**Confusion Matrix**
+
+```{r, message = FALSE, warning = FALSE}
+confusionMatrix(test_data_joined$Survived, predicted, threshold = optCutOff)
+```
+
+# Next question - visualize a logit model with multiple predictors.
+
+
+
+
+
+
+
+
+
+
+
