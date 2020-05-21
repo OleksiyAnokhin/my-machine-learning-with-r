@@ -23,6 +23,15 @@ test_data <- read_csv("test.csv")
 head(test_data)
 ```
 
+Check data for NAs, avoiding the failure of our model.
+
+```{r, message = FALSE, warning = FALSE}
+colSums(is.na(train_data))
+colSums(is.na(test_data))
+```
+
+As we can see, we have a lot of NAs in Age column, so we either need to remove NAs or exclude this variable from the model. 
+
 **Logistic regression assumptions**
 
 The logistic regression method assumes that:
@@ -49,7 +58,7 @@ predicted <- predict(logit_model, test_data, type = "response")
 summary(predicted)
 ```
 
-Now let's try to predict, using some specific values - sex and Pclass.
+Now let's try to predict, using some specific values for two variables - Sex and Pclass.
 
 ```{r, message = FALSE, warning = FALSE}
 example1 <- data.frame(Sex = "female", Pclass = 3)
@@ -91,10 +100,8 @@ The default cutoff prediction probability score is 0.5 or the ratio of 1’s and
 
 Misclassification error is the percentage mismatch of predcited vs actuals, irrespective of 1’s or 0’s. The lower the misclassification error, the better is your model. [Source:](http://r-statistics.co/Logistic-Regression-With-R.html)
 
-In our case it will not work, we do not have 1 or 0 in train data. 
-
 ```{r, message = FALSE, warning = FALSE}
-# misClassError(test_data$Survived, predicted, threshold = optCutOff)
+# misClassError(test_data$, predicted, threshold = optCutOff)
 ```
 
 **ROC**
@@ -102,7 +109,7 @@ In our case it will not work, we do not have 1 or 0 in train data.
 Receiver Operating Characteristics Curve traces the percentage of true positives accurately predicted by a given logit model as the prediction probability cutoff is lowered from 1 to 0. For a good model, as the cutoff is lowered, it should mark more of actual 1’s as positives and lesser of actual 0’s as 1’s. So for a good model, the curve should rise steeply, indicating that the TPR (Y-Axis) increases faster than the FPR (X-Axis) as the cutoff score decreases. Greater the area under the ROC curve, better the predictive ability of the model. [Source:](http://r-statistics.co/Logistic-Regression-With-R.html)
 
 ```{r, message = FALSE, warning = FALSE}
-plotROC(test_data$Survived, predicted)
+# plotROC(test_data$, predicted)
 ```
 
 **Concordance**
@@ -112,7 +119,7 @@ Ideally, the model-calculated-probability-scores of all actual Positive’s, (ak
 In simpler words, of all combinations of 1-0 pairs (actuals), Concordance is the percentage of pairs, whose scores of actual positive’s are greater than the scores of actual negative’s. For a perfect model, this will be 100%. So, the higher the concordance, the better is the quality of model. [Source:](http://r-statistics.co/Logistic-Regression-With-R.html)
 
 ```{r, message = FALSE, warning = FALSE}
-Concordance(test_data$Survived, predicted)
+# Concordance(test_data$, predicted)
 ```
 
 **Specificity and Sensitivity**
@@ -120,14 +127,14 @@ Concordance(test_data$Survived, predicted)
 Sensitivity (or True Positive Rate) is the percentage of 1’s (actuals) correctly predicted by the model, while, specificity is the percentage of 0’s (actuals) correctly predicted. Specificity can also be calculated as 1 - False Positive Rate. [Source:](http://r-statistics.co/Logistic-Regression-With-R.html)
 
 ```{r, message = FALSE, warning = FALSE}
-sensitivity(test_data$Survived, predicted, threshold = optCutOff)
-specificity(test_data$Survived, predicted, threshold = optCutOff)
+# sensitivity(test_data$, predicted, threshold = optCutOff)
+# specificity(test_data$, predicted, threshold = optCutOff)
 ```
 
 **Confusion Matrix**
 
 ```{r, message = FALSE, warning = FALSE}
-confusionMatrix(test_data$Survived, predicted, threshold = optCutOff)
+# confusionMatrix(test_data$, predicted, threshold = optCutOff)
 ```
 
 # Next question - visualize a logit model with multiple predictors.
