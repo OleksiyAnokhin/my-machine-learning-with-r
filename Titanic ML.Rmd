@@ -139,6 +139,9 @@ Sensitivity (or True Positive Rate) is the percentage of 1’s (actuals) correct
 
 # Next question - visualize a logit model with multiple predictors.
 
+# Explore this tutorial
+https://uc-r.github.io/logistic_regression
+
 
 
 
